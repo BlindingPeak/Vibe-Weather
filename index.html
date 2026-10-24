@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>7-Day Weather Forecast</title>
+<title>10-Day Weather Forecast & Radar</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   :root {
     color-scheme: light dark;
@@ -21,9 +22,10 @@
     margin: 0; padding: 24px 16px 48px; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  main { max-width: 960px; margin: 0 auto; }
+  main { max-width: 1000px; margin: 0 auto; }
   h1 { font-size: 1.5rem; margin: 0 0 16px; }
-  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  h2 { font-size: 1.15rem; margin: 24px 0 12px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   input[type="search"] {
     flex: 1 1 220px; padding: 10px 12px; border-radius: 8px; font-size: 1rem;
     border: 1px solid var(--border); background: var(--card); color: var(--text);
@@ -35,17 +37,29 @@
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
   .units { display: flex; gap: 4px; }
-  #status { color: var(--muted); margin: 8px 0 16px; min-height: 1.4em; }
+  #status { color: var(--muted); margin: 8px 0; min-height: 1.4em; }
   #status.error { color: var(--hot); }
-  h2 { font-size: 1.15rem; margin: 0 0 12px; }
-  .grid {
-    display: grid; gap: 12px;
-    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+
+  .now {
+    display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px;
   }
-  .day {
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-    padding: 14px; text-align: center;
-  }
+  .now .big { font-size: 2.2rem; line-height: 1; }
+  .now .temp { font-size: 1.8rem; font-weight: 600; }
+  .now .desc { color: var(--muted); }
+  .now .stat { font-size: 0.9rem; }
+  .now .stat span { display: block; color: var(--muted); font-size: 0.75rem; }
+
+  .map-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  #map { height: 420px; width: 100%; }
+  .radar-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap; }
+  .radar-bar button { padding: 6px 12px; }
+  .radar-bar input[type="range"] { flex: 1 1 160px; }
+  #radar-time { color: var(--muted); font-size: 0.85rem; min-width: 10ch; }
+  .hint { color: var(--muted); font-size: 0.8rem; padding: 0 14px 10px; }
+
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); }
+  .day { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center; }
   .day .name { font-weight: 600; }
   .day .date { color: var(--muted); font-size: 0.8rem; }
   .day .icon { font-size: 2.4rem; margin: 6px 0 2px; }
@@ -62,7 +76,7 @@
 </head>
 <body>
 <main>
-  <h1>7-Day Weather Forecast</h1>
+  <h1>10-Day Weather Forecast &amp; Radar</h1>
 
   <form class="controls" id="search-form">
     <input type="search" id="city" placeholder="Search for a city…" aria-label="City" autocomplete="off">
@@ -74,15 +88,34 @@
     </div>
   </form>
 
-  <div id="status" role="status">Search for a city to see its forecast.</div>
+  <div id="status" role="status">Search for a city or click the map to see the forecast.</div>
+
+  <section id="now" class="now" hidden></section>
+
+  <h2>Precipitation radar</h2>
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="radar-bar">
+      <button type="button" id="play" aria-label="Play or pause radar">⏸ Pause</button>
+      <input type="range" id="frame" min="0" max="0" value="0" aria-label="Radar frame">
+      <span id="radar-time">Loading radar…</span>
+    </div>
+    <div class="hint">Click anywhere on the map to get the forecast for that spot. Radar shows the past ~2 hours; blue-to-purple is light to heavy rain.</div>
+  </div>
+
   <section id="result" hidden>
     <h2 id="place"></h2>
     <div class="grid" id="grid"></div>
   </section>
 
-  <footer>Data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (free, no API key required).</footer>
+  <footer>
+    Forecast: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> ·
+    Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">Weather data by Rain Viewer</a> ·
+    Map: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>
+  </footer>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
   const WMO = {
     0: ["☀️", "Clear"], 1: ["🌤️", "Mostly clear"], 2: ["⛅", "Partly cloudy"], 3: ["☁️", "Overcast"],
@@ -96,17 +129,87 @@
     85: ["🌨️", "Snow showers"], 86: ["🌨️", "Heavy snow showers"],
     95: ["⛈️", "Thunderstorm"], 96: ["⛈️", "Thunderstorm, hail"], 99: ["⛈️", "Thunderstorm, hail"]
   };
-
+  const DAYS = 10;
   const $ = (id) => document.getElementById(id);
   let units = "imperial";
   let place = null; // {name, lat, lon}
 
   function setStatus(msg, isError = false) {
-    const el = $("status");
-    el.textContent = msg;
-    el.classList.toggle("error", isError);
+    $("status").textContent = msg;
+    $("status").classList.toggle("error", isError);
   }
 
+  /* ---------- Map + radar ---------- */
+  const map = L.map("map", { worldCopyJump: true }).setView([39, -98], 4);
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  let baseLayer = null;
+  function setBasemap() {
+    if (baseLayer) baseLayer.remove();
+    const style = darkQuery.matches ? "dark_all" : "light_all";
+    baseLayer = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png`, {
+      subdomains: "abcd", maxZoom: 19, zIndex: 1,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
+  }
+  setBasemap();
+  darkQuery.addEventListener("change", setBasemap);
+  let marker = null;
+
+  let radarLayers = [], radarTimes = [], radarIndex = 0, radarTimer = null, playing = true;
+
+  async function initRadar() {
+    try {
+      const res = await fetch("https://api.rainviewer.com/public/weather-maps.json");
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const frames = (data.radar && data.radar.past) || [];
+      if (!frames.length) throw new Error();
+      radarTimes = frames.map(f => f.time);
+      // Free tier tiles: max zoom 7, "Universal Blue" scheme (2), smoothed (1), snow shown (1)
+      radarLayers = frames.map(f => L.tileLayer(`${data.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {
+        opacity: 0, maxNativeZoom: 7, maxZoom: 18, tileSize: 256, zIndex: 5, attribution: "Weather data by Rain Viewer"
+      }).addTo(map));
+      $("frame").max = frames.length - 1;
+      showFrame(frames.length - 1);
+      startRadar();
+    } catch {
+      $("radar-time").textContent = "Radar unavailable";
+      $("play").disabled = true; $("frame").disabled = true;
+    }
+  }
+
+  function showFrame(i) {
+    radarIndex = i;
+    radarLayers.forEach((l, n) => l.setOpacity(n === i ? 0.7 : 0));
+    $("frame").value = i;
+    const t = new Date(radarTimes[i] * 1000);
+    $("radar-time").textContent = t.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+  function startRadar() {
+    clearInterval(radarTimer);
+    radarTimer = setInterval(() => showFrame((radarIndex + 1) % radarLayers.length), 700);
+    playing = true; $("play").textContent = "⏸ Pause";
+  }
+  function stopRadar() {
+    clearInterval(radarTimer); playing = false; $("play").textContent = "▶ Play";
+  }
+  $("play").addEventListener("click", () => playing ? stopRadar() : startRadar());
+  $("frame").addEventListener("input", (e) => { stopRadar(); showFrame(+e.target.value); });
+
+  map.on("click", (e) => {
+    const { lat, lng } = e.latlng;
+    setPlace({ name: `Map location (${lat.toFixed(2)}, ${lng.toFixed(2)})`, lat, lon: ((lng + 540) % 360) - 180 }, false);
+  });
+
+  function setPlace(p, recenter = true) {
+    place = p;
+    if (marker) marker.remove();
+    marker = L.marker([p.lat, p.lon]).addTo(map);
+    if (recenter) map.setView([p.lat, p.lon], Math.max(map.getZoom(), 6));
+    loadForecast();
+  }
+
+  /* ---------- Forecast ---------- */
   async function geocode(query) {
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
     const res = await fetch(url);
@@ -124,85 +227,96 @@
     const params = new URLSearchParams({
       latitude: place.lat,
       longitude: place.lon,
-      daily: "weather_code,temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,wind_speed_10m_max",
-      forecast_days: 7,
+      current: "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code",
+      daily: "weather_code,temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,wind_speed_10m_max,precipitation_sum,precipitation_probability_max",
+      forecast_days: DAYS,
       timezone: "auto",
       temperature_unit: imperial ? "fahrenheit" : "celsius",
-      wind_speed_unit: imperial ? "mph" : "kmh"
+      wind_speed_unit: imperial ? "mph" : "kmh",
+      precipitation_unit: imperial ? "inch" : "mm"
     });
     try {
       const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
       if (!res.ok) throw new Error("Forecast request failed.");
-      render(await res.json());
+      const data = await res.json();
+      renderCurrent(data);
+      renderDaily(data);
       setStatus("");
     } catch (err) {
       setStatus(err.message || "Something went wrong.", true);
     }
   }
 
-  function render(data) {
-    const d = data.daily;
-    const tUnit = imperial() ? "°F" : "°C";
-    const wUnit = imperial() ? "mph" : "km/h";
-    $("place").textContent = place.name;
+  const U = () => units === "imperial"
+    ? { t: "°F", w: "mph", p: "in", pd: 2 } : { t: "°C", w: "km/h", p: "mm", pd: 1 };
+
+  function renderCurrent(data) {
+    const c = data.current, u = U();
+    const [icon, desc] = WMO[c.weather_code] || ["❔", "Unknown"];
+    $("now").innerHTML = `
+      <div class="big" aria-hidden="true">${icon}</div>
+      <div><div class="temp">${Math.round(c.temperature_2m)}${u.t}</div><div class="desc">Now · ${desc}</div></div>
+      <div class="stat"><span>Precipitation</span>${c.precipitation.toFixed(u.pd)} ${u.p}</div>
+      <div class="stat"><span>Humidity</span>${Math.round(c.relative_humidity_2m)}%</div>
+      <div class="stat"><span>Wind</span>${Math.round(c.wind_speed_10m)} ${u.w}</div>`;
+    $("now").hidden = false;
+  }
+
+  function renderDaily(data) {
+    const d = data.daily, u = U();
+    $("place").textContent = `${DAYS}-day forecast · ${place.name}`;
     $("grid").innerHTML = d.time.map((iso, i) => {
       const [icon, desc] = WMO[d.weather_code[i]] || ["❔", "Unknown"];
       const date = new Date(iso + "T12:00:00");
       const name = i === 0 ? "Today" : date.toLocaleDateString(undefined, { weekday: "long" });
       const short = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const chance = d.precipitation_probability_max[i];
       return `
         <article class="day">
           <div class="name">${name}</div>
           <div class="date">${short}</div>
           <div class="icon" aria-hidden="true">${icon}</div>
           <div class="desc">${desc}</div>
-          <div class="temps"><span class="hi">${Math.round(d.temperature_2m_max[i])}${tUnit}</span> /
-            <span class="lo">${Math.round(d.temperature_2m_min[i])}${tUnit}</span></div>
+          <div class="temps"><span class="hi">${Math.round(d.temperature_2m_max[i])}${u.t}</span> /
+            <span class="lo">${Math.round(d.temperature_2m_min[i])}${u.t}</span></div>
           <dl>
+            <dt>Precip</dt><dd>${d.precipitation_sum[i].toFixed(u.pd)} ${u.p}${chance == null ? "" : ` (${chance}%)`}</dd>
             <dt>Humidity</dt><dd>${Math.round(d.relative_humidity_2m_mean[i])}%</dd>
-            <dt>Wind</dt><dd>${Math.round(d.wind_speed_10m_max[i])} ${wUnit}</dd>
+            <dt>Wind</dt><dd>${Math.round(d.wind_speed_10m_max[i])} ${u.w}</dd>
           </dl>
         </article>`;
     }).join("");
     $("result").hidden = false;
   }
 
-  const imperial = () => units === "imperial";
-
+  /* ---------- Controls ---------- */
   function setUnits(u) {
     units = u;
     $("u-imperial").setAttribute("aria-pressed", u === "imperial");
     $("u-metric").setAttribute("aria-pressed", u === "metric");
     loadForecast();
   }
-
   $("search-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const q = $("city").value.trim();
     if (!q) return;
     try {
       setStatus("Searching…");
-      place = await geocode(q);
-      await loadForecast();
-    } catch (err) {
-      setStatus(err.message, true);
-    }
+      setPlace(await geocode(q));
+    } catch (err) { setStatus(err.message, true); }
   });
-
   $("geo").addEventListener("click", () => {
     if (!navigator.geolocation) return setStatus("Geolocation isn’t supported in this browser.", true);
     setStatus("Getting your location…");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        place = { name: "Your location", lat: pos.coords.latitude, lon: pos.coords.longitude };
-        loadForecast();
-      },
+      (pos) => setPlace({ name: "Your location", lat: pos.coords.latitude, lon: pos.coords.longitude }),
       () => setStatus("Couldn’t get your location. Try searching for a city instead.", true)
     );
   });
-
   $("u-imperial").addEventListener("click", () => setUnits("imperial"));
   $("u-metric").addEventListener("click", () => setUnits("metric"));
+
+  initRadar();
 </script>
 </body>
 </html>
