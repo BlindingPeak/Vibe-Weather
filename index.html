@@ -136,7 +136,15 @@ function addCard(loc) {
   const map = L.map(el.querySelector(".map"), { scrollWheelZoom: false }).setView([loc.lat, loc.lon], 6);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap contributors" }).addTo(map);
   const marker = L.marker([loc.lat, loc.lon]).addTo(map);
-  const c = cards[loc.id] = { el, map, marker, radar: null };
+  const c = cards[loc.id] = { el, map, marker, radar: null, ro: null, moved: false };
+  // Leaflet caches the container size when the map is created. The card's layout changes afterwards
+  // (grid reflow, forecast loading), so re-measure whenever the map box resizes and keep it centered.
+  map.on("dragstart", () => { c.moved = true; });
+  c.ro = new ResizeObserver(() => {
+    map.invalidateSize({ animate: false });
+    if (!c.moved) { const l = state.locs.find(x => x.id === loc.id) || loc; map.setView([l.lat, l.lon], map.getZoom(), { animate: false }); }
+  });
+  c.ro.observe(el.querySelector(".map"));
   radarReady.then(() => {
     if (frames.length && cards[loc.id] === c)
       c.radar = L.tileLayer(radarUrl(frames[ri]), { opacity: .7, maxNativeZoom: 7, maxZoom: 18, zIndex: 5, attribution: "Rain Viewer" }).addTo(map);
@@ -146,7 +154,7 @@ function addCard(loc) {
 
 function removeLoc(id) {
   const c = cards[id]; if (!c) return;
-  c.map.remove(); c.el.remove(); delete cards[id];
+  c.ro && c.ro.disconnect(); c.map.remove(); c.el.remove(); delete cards[id];
   if (id === "home") state.skipAuto = true;
   state.locs = state.locs.filter(l => l.id !== id);
   save();
