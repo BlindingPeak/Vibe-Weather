@@ -88,7 +88,7 @@
     </div>
   </form>
 
-  <div id="status" role="status">Search for a city or click the map to see the forecast.</div>
+  <div id="status" role="status">Allow location access to see your local forecast, or search for a city.</div>
 
   <section id="now" class="now" hidden></section>
 
@@ -296,18 +296,25 @@
       setPlace(await geocode(q));
     } catch (err) { setStatus(err.message, true); }
   });
-  $("geo").addEventListener("click", () => {
-    if (!navigator.geolocation) return setStatus("Geolocation isn’t supported in this browser.", true);
+  function useMyLocation(auto = false) {
+    if (!navigator.geolocation) {
+      return setStatus("Geolocation isn’t supported in this browser. Search for a city instead.", true);
+    }
     setStatus("Getting your location…");
     navigator.geolocation.getCurrentPosition(
       (pos) => setPlace({ name: "Your location", lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => setStatus("Couldn’t get your location. Try searching for a city instead.", true)
+      () => setStatus(
+        auto ? "Location access was blocked or unavailable. Search for a city or click the map to see a forecast."
+             : "Couldn’t get your location. Try searching for a city instead.", auto ? false : true),
+      { timeout: 10000, maximumAge: 300000 }
     );
-  });
+  }
+  $("geo").addEventListener("click", () => useMyLocation(false));
   $("u-imperial").addEventListener("click", () => setUnits("imperial"));
   $("u-metric").addEventListener("click", () => setUnits("metric"));
 
   initRadar();
+  useMyLocation(true); // forecast for the visitor's location on load
 </script>
 </body>
 </html>
