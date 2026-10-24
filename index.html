@@ -3,318 +3,268 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>10-Day Weather Forecast & Radar</title>
+<title>Weather Compare</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-  :root {
-    color-scheme: light dark;
-    --bg: #eef3f9; --card: #ffffff; --text: #16212e; --muted: #61707f;
-    --accent: #2f6fed; --border: #d8e0ea; --hot: #e0553a; --cold: #2f6fed;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0f151d; --card: #18212c; --text: #e8eef5; --muted: #8fa0b2;
-      --accent: #6c9bff; --border: #263342; --hot: #ff8466; --cold: #7aa8ff;
-    }
-  }
+  :root { color-scheme: light dark; --bg:#eef3f9; --card:#fff; --text:#16212e; --muted:#61707f; --accent:#2f6fed; --border:#d8e0ea; --hot:#e0553a; --cold:#2f6fed; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f151d; --card:#18212c; --text:#e8eef5; --muted:#8fa0b2; --accent:#6c9bff; --border:#263342; --hot:#ff8466; --cold:#7aa8ff; } }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 24px 16px 48px; background: var(--bg); color: var(--text);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  }
-  main { max-width: 1000px; margin: 0 auto; }
-  h1 { font-size: 1.5rem; margin: 0 0 16px; }
-  h2 { font-size: 1.15rem; margin: 24px 0 12px; }
-  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-  input[type="search"] {
-    flex: 1 1 220px; padding: 10px 12px; border-radius: 8px; font-size: 1rem;
-    border: 1px solid var(--border); background: var(--card); color: var(--text);
-  }
-  button {
-    padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--card); color: var(--text); font-size: 0.95rem; cursor: pointer;
-  }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-  .units { display: flex; gap: 4px; }
-  #status { color: var(--muted); margin: 8px 0; min-height: 1.4em; }
-  #status.error { color: var(--hot); }
-
-  .now {
-    display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center;
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px;
-  }
-  .now .big { font-size: 2.2rem; line-height: 1; }
-  .now .temp { font-size: 1.8rem; font-weight: 600; }
-  .now .desc { color: var(--muted); }
-  .now .stat { font-size: 0.9rem; }
-  .now .stat span { display: block; color: var(--muted); font-size: 0.75rem; }
-
-  .map-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-  #map { height: 420px; width: 100%; }
-  .radar-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap; }
-  .radar-bar button { padding: 6px 12px; }
-  .radar-bar input[type="range"] { flex: 1 1 160px; }
-  #radar-time { color: var(--muted); font-size: 0.85rem; min-width: 10ch; }
-  .hint { color: var(--muted); font-size: 0.8rem; padding: 0 14px 10px; }
-
-  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); }
-  .day { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center; }
-  .day .name { font-weight: 600; }
-  .day .date { color: var(--muted); font-size: 0.8rem; }
-  .day .icon { font-size: 2.4rem; margin: 6px 0 2px; }
-  .day .desc { color: var(--muted); font-size: 0.82rem; min-height: 2.2em; }
-  .temps { font-size: 1.2rem; margin: 6px 0 10px; }
-  .temps .hi { color: var(--hot); font-weight: 600; }
-  .temps .lo { color: var(--cold); }
-  dl { margin: 0; display: grid; grid-template-columns: auto auto; gap: 4px 8px; font-size: 0.85rem; text-align: left; }
-  dt { color: var(--muted); }
-  dd { margin: 0; text-align: right; }
-  footer { margin-top: 28px; color: var(--muted); font-size: 0.8rem; }
-  footer a { color: var(--accent); }
+  body { margin:0; padding:24px 16px 48px; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:1200px; margin:0 auto; }
+  h1 { font-size:1.5rem; margin:0 0 16px; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center; }
+  .search { position:relative; flex:1 1 260px; display:flex; gap:8px; }
+  input[type=search] { flex:1; min-width:0; padding:10px 12px; border-radius:8px; font-size:1rem; border:1px solid var(--border); background:var(--card); color:var(--text); }
+  button { padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:.95rem; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button[aria-pressed=true] { border-color:var(--accent); color:var(--accent); font-weight:600; }
+  .units { display:flex; gap:4px; }
+  #results { position:absolute; top:100%; left:0; right:0; z-index:1000; margin:4px 0 0; padding:4px; list-style:none; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.2); }
+  #results button { width:100%; text-align:left; border:0; padding:8px 10px; }
+  #results button:hover { background:var(--bg); }
+  .radar-bar { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:8px 12px; }
+  .radar-bar button { padding:6px 12px; }
+  .radar-bar input { flex:1 1 160px; }
+  #rtime { color:var(--muted); font-size:.85rem; min-width:16ch; }
+  #status { color:var(--muted); margin:8px 0; min-height:1.4em; }
+  #status.error { color:var(--hot); }
+  .cards { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr)); align-items:start; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; min-width:0; }
+  .head { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .head h2 { font-size:1.15rem; margin:0; }
+  .badge { font-size:.7rem; background:var(--accent); color:#fff; border-radius:99px; padding:2px 8px; vertical-align:middle; }
+  .x { padding:4px 10px; color:var(--muted); }
+  .now { display:flex; flex-wrap:wrap; gap:6px 18px; align-items:center; margin:10px 0; }
+  .now .temp { font-size:1.7rem; font-weight:600; }
+  .now .big { font-size:2rem; }
+  .now .st { font-size:.85rem; } .now .st span { display:block; color:var(--muted); font-size:.72rem; }
+  .map { height:250px; border-radius:8px; margin-bottom:10px; z-index:0; }
+  .row { display:grid; grid-template-columns:5.2em 1.8em 1.6fr 1fr 3.4em 4.6em; gap:4px; align-items:center; padding:6px 0; border-top:1px solid var(--border); font-size:.82rem; }
+  .row.h { color:var(--muted); font-size:.72rem; border-top:0; }
+  .row small { display:block; color:var(--muted); font-size:.7rem; }
+  .ic { font-size:1.3rem; }
+  .hi { color:var(--hot); font-weight:600; } .lo { color:var(--cold); }
+  footer { margin-top:28px; color:var(--muted); font-size:.8rem; } footer a { color:var(--accent); }
 </style>
 </head>
 <body>
 <main>
-  <h1>10-Day Weather Forecast &amp; Radar</h1>
-
-  <form class="controls" id="search-form">
-    <input type="search" id="city" placeholder="Search for a city…" aria-label="City" autocomplete="off">
-    <button class="primary" type="submit">Search</button>
-    <button type="button" id="geo">Use my location</button>
+  <h1>Weather Compare</h1>
+  <div class="bar">
+    <form class="search" id="sf" autocomplete="off">
+      <input type="search" id="q" placeholder="Add a city, e.g. Dallas, Texas" aria-label="City">
+      <button class="primary" type="submit">Add</button>
+      <ul id="results" hidden></ul>
+    </form>
+    <button type="button" id="geo">📍 My location</button>
     <div class="units" role="group" aria-label="Units">
       <button type="button" id="u-imperial" aria-pressed="true">°F / mph</button>
       <button type="button" id="u-metric" aria-pressed="false">°C / km/h</button>
     </div>
-  </form>
-
-  <div id="status" role="status">Allow location access to see your local forecast, or search for a city.</div>
-
-  <section id="now" class="now" hidden></section>
-
-  <h2>Precipitation radar</h2>
-  <div class="map-wrap">
-    <div id="map"></div>
-    <div class="radar-bar">
-      <button type="button" id="play" aria-label="Play or pause radar">⏸ Pause</button>
-      <input type="range" id="frame" min="0" max="0" value="0" aria-label="Radar frame">
-      <span id="radar-time">Loading radar…</span>
-    </div>
-    <div class="hint">Click anywhere on the map to get the forecast for that spot. Radar shows the past ~2 hours; blue-to-purple is light to heavy rain.</div>
   </div>
-
-  <section id="result" hidden>
-    <h2 id="place"></h2>
-    <div class="grid" id="grid"></div>
-  </section>
-
+  <div class="bar radar-bar">
+    <button type="button" id="play">▶ Play radar</button>
+    <input type="range" id="frame" min="0" max="0" value="0" aria-label="Radar frame">
+    <span id="rtime">Loading radar…</span>
+  </div>
+  <div id="status" role="status"></div>
+  <div class="cards" id="cards"></div>
   <footer>
     Forecast: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> ·
-    Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">Weather data by Rain Viewer</a> ·
-    Map: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
+    <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">Weather data by Rain Viewer</a> ·
+    Map: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
+    Locations are saved in this browser only.
   </footer>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-  const WMO = {
-    0: ["☀️", "Clear"], 1: ["🌤️", "Mostly clear"], 2: ["⛅", "Partly cloudy"], 3: ["☁️", "Overcast"],
-    45: ["🌫️", "Fog"], 48: ["🌫️", "Rime fog"],
-    51: ["🌦️", "Light drizzle"], 53: ["🌦️", "Drizzle"], 55: ["🌧️", "Heavy drizzle"],
-    56: ["🌧️", "Freezing drizzle"], 57: ["🌧️", "Freezing drizzle"],
-    61: ["🌧️", "Light rain"], 63: ["🌧️", "Rain"], 65: ["🌧️", "Heavy rain"],
-    66: ["🌧️", "Freezing rain"], 67: ["🌧️", "Freezing rain"],
-    71: ["🌨️", "Light snow"], 73: ["🌨️", "Snow"], 75: ["❄️", "Heavy snow"], 77: ["❄️", "Snow grains"],
-    80: ["🌦️", "Showers"], 81: ["🌧️", "Showers"], 82: ["⛈️", "Violent showers"],
-    85: ["🌨️", "Snow showers"], 86: ["🌨️", "Heavy snow showers"],
-    95: ["⛈️", "Thunderstorm"], 96: ["⛈️", "Thunderstorm, hail"], 99: ["⛈️", "Thunderstorm, hail"]
-  };
-  const DAYS = 10;
-  const $ = (id) => document.getElementById(id);
-  let units = "imperial";
-  let place = null; // {name, lat, lon}
+const WMO = {0:["☀️","Clear"],1:["🌤️","Mostly clear"],2:["⛅","Partly cloudy"],3:["☁️","Overcast"],45:["🌫️","Fog"],48:["🌫️","Rime fog"],
+  51:["🌦️","Light drizzle"],53:["🌦️","Drizzle"],55:["🌧️","Heavy drizzle"],56:["🌧️","Freezing drizzle"],57:["🌧️","Freezing drizzle"],
+  61:["🌧️","Light rain"],63:["🌧️","Rain"],65:["🌧️","Heavy rain"],66:["🌧️","Freezing rain"],67:["🌧️","Freezing rain"],
+  71:["🌨️","Light snow"],73:["🌨️","Snow"],75:["❄️","Heavy snow"],77:["❄️","Snow grains"],80:["🌦️","Showers"],81:["🌧️","Showers"],
+  82:["⛈️","Violent showers"],85:["🌨️","Snow showers"],86:["🌨️","Heavy snow showers"],95:["⛈️","Thunderstorm"],96:["⛈️","Thunderstorm, hail"],99:["⛈️","Thunderstorm, hail"]};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const KEY = "weatherCompare.v1";
+let state = { locs: [], units: "imperial", skipAuto: false };
+const cards = {};
 
-  function setStatus(msg, isError = false) {
-    $("status").textContent = msg;
-    $("status").classList.toggle("error", isError);
-  }
+/* ---------- Saved state ---------- */
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && Array.isArray(s.locs)) state = { ...state, ...s }; } catch {} }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+function setStatus(msg, err = false) { $("status").textContent = msg; $("status").classList.toggle("error", err); }
 
-  /* ---------- Map + radar ---------- */
-  const map = L.map("map", { worldCopyJump: true }).setView([39, -98], 4);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18, zIndex: 1, attribution: "© OpenStreetMap contributors"
-  }).addTo(map);
-  let marker = null;
+/* ---------- Radar (shared timeline) ---------- */
+let host = "", frames = [], ri = 0, timer = null;
+const radarUrl = f => `${host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`;
+const radarReady = fetch("https://api.rainviewer.com/public/weather-maps.json")
+  .then(r => r.json())
+  .then(d => {
+    host = d.host; frames = (d.radar && d.radar.past) || [];
+    if (!frames.length) throw 0;
+    $("frame").max = frames.length - 1; ri = frames.length - 1; label();
+  })
+  .catch(() => { $("rtime").textContent = "Radar unavailable"; $("play").disabled = $("frame").disabled = true; });
 
-  let radarLayers = [], radarTimes = [], radarIndex = 0, radarTimer = null, playing = true;
+function label() {
+  $("frame").value = ri;
+  const t = new Date(frames[ri].time * 1000);
+  $("rtime").textContent = (ri === frames.length - 1 ? "Latest · " : "") + t.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+function showFrame(i) {
+  ri = i; label();
+  Object.values(cards).forEach(c => c.radar && c.radar.setUrl(radarUrl(frames[i])));
+}
+function stopRadar() { clearInterval(timer); timer = null; $("play").textContent = "▶ Play radar"; }
+$("play").onclick = () => {
+  if (timer) return stopRadar();
+  $("play").textContent = "⏸ Pause";
+  timer = setInterval(() => showFrame((ri + 1) % frames.length), 800);
+};
+$("frame").oninput = e => { stopRadar(); showFrame(+e.target.value); };
 
-  async function initRadar() {
-    try {
-      const res = await fetch("https://api.rainviewer.com/public/weather-maps.json");
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      const frames = (data.radar && data.radar.past) || [];
-      if (!frames.length) throw new Error();
-      radarTimes = frames.map(f => f.time);
-      // Free tier tiles: max zoom 7, "Universal Blue" scheme (2), smoothed (1), snow shown (1)
-      radarLayers = frames.map(f => L.tileLayer(`${data.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {
-        opacity: 0, maxNativeZoom: 7, maxZoom: 18, tileSize: 256, zIndex: 5, attribution: "Weather data by Rain Viewer"
-      }).addTo(map));
-      $("frame").max = frames.length - 1;
-      showFrame(frames.length - 1);
-      startRadar();
-    } catch {
-      $("radar-time").textContent = "Radar unavailable";
-      $("play").disabled = true; $("frame").disabled = true;
-    }
-  }
-
-  function showFrame(i) {
-    radarIndex = i;
-    radarLayers.forEach((l, n) => l.setOpacity(n === i ? 0.7 : 0));
-    $("frame").value = i;
-    const t = new Date(radarTimes[i] * 1000);
-    $("radar-time").textContent = t.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  }
-  function startRadar() {
-    clearInterval(radarTimer);
-    radarTimer = setInterval(() => showFrame((radarIndex + 1) % radarLayers.length), 700);
-    playing = true; $("play").textContent = "⏸ Pause";
-  }
-  function stopRadar() {
-    clearInterval(radarTimer); playing = false; $("play").textContent = "▶ Play";
-  }
-  $("play").addEventListener("click", () => playing ? stopRadar() : startRadar());
-  $("frame").addEventListener("input", (e) => { stopRadar(); showFrame(+e.target.value); });
-
-  map.on("click", (e) => {
-    const { lat, lng } = e.latlng;
-    setPlace({ name: `Map location (${lat.toFixed(2)}, ${lng.toFixed(2)})`, lat, lon: ((lng + 540) % 360) - 180 }, false);
+/* ---------- Cards ---------- */
+function addCard(loc) {
+  const el = document.createElement("article");
+  el.className = "card";
+  el.innerHTML = `<div class="head"><h2>${esc(loc.name)}${loc.home ? ' <span class="badge">You</span>' : ""}</h2>
+    <button class="x" aria-label="Remove ${esc(loc.name)}" title="Remove">✕</button></div>
+    <div class="now">Loading…</div><div class="map"></div><div class="fc"></div>`;
+  loc.home ? $("cards").prepend(el) : $("cards").appendChild(el);
+  el.querySelector(".x").onclick = () => removeLoc(loc.id);
+  const map = L.map(el.querySelector(".map"), { scrollWheelZoom: false }).setView([loc.lat, loc.lon], 6);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap contributors" }).addTo(map);
+  const marker = L.marker([loc.lat, loc.lon]).addTo(map);
+  const c = cards[loc.id] = { el, map, marker, radar: null };
+  radarReady.then(() => {
+    if (frames.length && cards[loc.id] === c)
+      c.radar = L.tileLayer(radarUrl(frames[ri]), { opacity: .7, maxNativeZoom: 7, maxZoom: 18, zIndex: 5, attribution: "Rain Viewer" }).addTo(map);
   });
+  loadForecast(loc);
+}
 
-  function setPlace(p, recenter = true) {
-    place = p;
-    if (marker) marker.remove();
-    marker = L.marker([p.lat, p.lon]).addTo(map);
-    if (recenter) map.setView([p.lat, p.lon], Math.max(map.getZoom(), 6));
-    loadForecast();
-  }
+function removeLoc(id) {
+  const c = cards[id]; if (!c) return;
+  c.map.remove(); c.el.remove(); delete cards[id];
+  if (id === "home") state.skipAuto = true;
+  state.locs = state.locs.filter(l => l.id !== id);
+  save();
+  if (!state.locs.length) setStatus("Add a city to see its forecast.");
+}
 
-  /* ---------- Forecast ---------- */
-  async function geocode(query) {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Location lookup failed.");
-    const data = await res.json();
-    if (!data.results || !data.results.length) throw new Error(`No location found for “${query}”.`);
-    const r = data.results[0];
-    return { name: [r.name, r.admin1, r.country].filter(Boolean).join(", "), lat: r.latitude, lon: r.longitude };
-  }
-
-  async function loadForecast() {
-    if (!place) return;
-    setStatus("Loading forecast…");
-    const imperial = units === "imperial";
-    const params = new URLSearchParams({
-      latitude: place.lat,
-      longitude: place.lon,
-      current: "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code",
-      daily: "weather_code,temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,wind_speed_10m_max,precipitation_sum,precipitation_probability_max",
-      forecast_days: DAYS,
-      timezone: "auto",
-      temperature_unit: imperial ? "fahrenheit" : "celsius",
-      wind_speed_unit: imperial ? "mph" : "kmh",
-      precipitation_unit: imperial ? "inch" : "mm"
-    });
-    try {
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
-      if (!res.ok) throw new Error("Forecast request failed.");
-      const data = await res.json();
-      renderCurrent(data);
-      renderDaily(data);
-      setStatus("");
-    } catch (err) {
-      setStatus(err.message || "Something went wrong.", true);
-    }
-  }
-
-  const U = () => units === "imperial"
-    ? { t: "°F", w: "mph", p: "in", pd: 2 } : { t: "°C", w: "km/h", p: "mm", pd: 1 };
-
-  function renderCurrent(data) {
-    const c = data.current, u = U();
-    const [icon, desc] = WMO[c.weather_code] || ["❔", "Unknown"];
-    $("now").innerHTML = `
-      <div class="big" aria-hidden="true">${icon}</div>
-      <div><div class="temp">${Math.round(c.temperature_2m)}${u.t}</div><div class="desc">Now · ${desc}</div></div>
-      <div class="stat"><span>Precipitation</span>${c.precipitation.toFixed(u.pd)} ${u.p}</div>
-      <div class="stat"><span>Humidity</span>${Math.round(c.relative_humidity_2m)}%</div>
-      <div class="stat"><span>Wind</span>${Math.round(c.wind_speed_10m)} ${u.w}</div>`;
-    $("now").hidden = false;
-  }
-
-  function renderDaily(data) {
-    const d = data.daily, u = U();
-    $("place").textContent = `${DAYS}-day forecast · ${place.name}`;
-    $("grid").innerHTML = d.time.map((iso, i) => {
-      const [icon, desc] = WMO[d.weather_code[i]] || ["❔", "Unknown"];
-      const date = new Date(iso + "T12:00:00");
-      const name = i === 0 ? "Today" : date.toLocaleDateString(undefined, { weekday: "long" });
-      const short = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-      const chance = d.precipitation_probability_max[i];
-      return `
-        <article class="day">
-          <div class="name">${name}</div>
-          <div class="date">${short}</div>
-          <div class="icon" aria-hidden="true">${icon}</div>
-          <div class="desc">${desc}</div>
-          <div class="temps"><span class="hi">${Math.round(d.temperature_2m_max[i])}${u.t}</span> /
-            <span class="lo">${Math.round(d.temperature_2m_min[i])}${u.t}</span></div>
-          <dl>
-            <dt>Precip</dt><dd>${d.precipitation_sum[i].toFixed(u.pd)} ${u.p}${chance == null ? "" : ` (${chance}%)`}</dd>
-            <dt>Humidity</dt><dd>${Math.round(d.relative_humidity_2m_mean[i])}%</dd>
-            <dt>Wind</dt><dd>${Math.round(d.wind_speed_10m_max[i])} ${u.w}</dd>
-          </dl>
-        </article>`;
-    }).join("");
-    $("result").hidden = false;
-  }
-
-  /* ---------- Controls ---------- */
-  function setUnits(u) {
-    units = u;
-    $("u-imperial").setAttribute("aria-pressed", u === "imperial");
-    $("u-metric").setAttribute("aria-pressed", u === "metric");
-    loadForecast();
-  }
-  $("search-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const q = $("city").value.trim();
-    if (!q) return;
-    try {
-      setStatus("Searching…");
-      setPlace(await geocode(q));
-    } catch (err) { setStatus(err.message, true); }
+async function loadForecast(loc) {
+  const c = cards[loc.id]; if (!c) return;
+  const im = state.units === "imperial";
+  const u = im ? { t: "°F", w: "mph", p: "in", d: 2 } : { t: "°C", w: "km/h", p: "mm", d: 1 };
+  const q = new URLSearchParams({
+    latitude: loc.lat, longitude: loc.lon, timezone: "auto", forecast_days: 10,
+    current: "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code",
+    daily: "weather_code,temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean,wind_speed_10m_max,precipitation_sum,precipitation_probability_max",
+    temperature_unit: im ? "fahrenheit" : "celsius", wind_speed_unit: im ? "mph" : "kmh", precipitation_unit: im ? "inch" : "mm"
   });
-  function useMyLocation(auto = false) {
-    if (!navigator.geolocation) {
-      return setStatus("Geolocation isn’t supported in this browser. Search for a city instead.", true);
-    }
-    setStatus("Getting your location…");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setPlace({ name: "Your location", lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => setStatus(
-        auto ? "Location access was blocked or unavailable. Search for a city or click the map to see a forecast."
-             : "Couldn’t get your location. Try searching for a city instead.", auto ? false : true),
-      { timeout: 10000, maximumAge: 300000 }
-    );
-  }
-  $("geo").addEventListener("click", () => useMyLocation(false));
-  $("u-imperial").addEventListener("click", () => setUnits("imperial"));
-  $("u-metric").addEventListener("click", () => setUnits("metric"));
+  try {
+    const res = await fetch("https://api.open-meteo.com/v1/forecast?" + q);
+    if (!res.ok) throw 0;
+    const data = await res.json(), n = data.current, d = data.daily;
+    const [icon, desc] = WMO[n.weather_code] || ["❔", "Unknown"];
+    c.el.querySelector(".now").innerHTML = `<span class="big">${icon}</span>
+      <div><div class="temp">${Math.round(n.temperature_2m)}${u.t}</div><div class="st"><span>Now · ${desc}</span></div></div>
+      <div class="st"><span>Precipitation</span>${n.precipitation.toFixed(u.d)} ${u.p}</div>
+      <div class="st"><span>Humidity</span>${Math.round(n.relative_humidity_2m)}%</div>
+      <div class="st"><span>Wind</span>${Math.round(n.wind_speed_10m)} ${u.w}</div>`;
+    c.el.querySelector(".fc").innerHTML = `<div class="row h"><span>Day</span><span></span><span>High / Low</span><span>Precip</span><span>Humid.</span><span>Wind</span></div>` +
+      d.time.map((iso, i) => {
+        const dt = new Date(iso + "T12:00:00"), [ic, ds] = WMO[d.weather_code[i]] || ["❔", "Unknown"];
+        const ch = d.precipitation_probability_max[i];
+        return `<div class="row"><span>${i === 0 ? "Today" : dt.toLocaleDateString(undefined, { weekday: "short" })}<small>${dt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</small></span>
+          <span class="ic" title="${ds}">${ic}</span>
+          <span><b class="hi">${Math.round(d.temperature_2m_max[i])}${u.t}</b> / <span class="lo">${Math.round(d.temperature_2m_min[i])}${u.t}</span></span>
+          <span>${d.precipitation_sum[i].toFixed(u.d)} ${u.p}<small>${ch == null ? "" : ch + "%"}</small></span>
+          <span>${Math.round(d.relative_humidity_2m_mean[i])}%</span><span>${Math.round(d.wind_speed_10m_max[i])} ${u.w}</span></div>`;
+      }).join("");
+  } catch { c.el.querySelector(".now").textContent = "Couldn’t load forecast."; }
+}
 
-  initRadar();
-  useMyLocation(true); // forecast for the visitor's location on load
+/* ---------- Adding locations ---------- */
+function addLocation(p) {
+  $("results").hidden = true; $("q").value = "";
+  if (state.locs.some(l => Math.abs(l.lat - p.lat) < .02 && Math.abs(l.lon - p.lon) < .02)) return setStatus(`${p.name} is already on the page.`);
+  const loc = { id: Date.now().toString(36), ...p };
+  state.locs.push(loc); save(); setStatus(""); addCard(loc);
+  cards[loc.id].el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function searchCity(text) {
+  const [first, ...rest] = text.split(",").map(s => s.trim()).filter(Boolean);
+  const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(first)}&count=10&language=en&format=json`);
+  if (!r.ok) throw new Error("Location lookup failed.");
+  let res = (await r.json()).results || [];
+  const hint = rest.join(" ").toLowerCase();
+  if (hint) { const m = res.filter(x => [x.admin1, x.country, x.country_code].some(v => v && v.toLowerCase().includes(hint))); if (m.length) res = m; }
+  return res.slice(0, 6).map(x => ({ name: [x.name, x.admin1, x.country_code].filter(Boolean).join(", "), lat: x.latitude, lon: x.longitude }));
+}
+
+$("sf").onsubmit = async e => {
+  e.preventDefault();
+  const t = $("q").value.trim(); if (!t) return;
+  try {
+    setStatus("Searching…");
+    const found = await searchCity(t);
+    if (!found.length) return setStatus(`No location found for “${t}”.`, true);
+    setStatus("");
+    if (found.length === 1) return addLocation(found[0]);
+    const ul = $("results"); ul.innerHTML = "";
+    found.forEach(p => { const li = document.createElement("li"), b = document.createElement("button"); b.type = "button"; b.textContent = p.name; b.onclick = () => addLocation(p); li.appendChild(b); ul.appendChild(li); });
+    ul.hidden = false;
+  } catch (err) { setStatus(err.message || "Search failed.", true); }
+};
+document.addEventListener("click", e => { if (!$("sf").contains(e.target)) $("results").hidden = true; });
+
+/* ---------- My location ---------- */
+function setHome(lat, lon) {
+  const h = state.locs.find(l => l.home);
+  if (h) {
+    if (Math.abs(h.lat - lat) < .01 && Math.abs(h.lon - lon) < .01) return;
+    h.lat = lat; h.lon = lon; save();
+    const c = cards[h.id]; c.marker.setLatLng([lat, lon]); c.map.setView([lat, lon], 6); loadForecast(h);
+  } else {
+    const loc = { id: "home", name: "My location", lat, lon, home: true };
+    state.locs.unshift(loc); save(); addCard(loc);
+  }
+}
+function locate(manual) {
+  if (!navigator.geolocation) return manual && setStatus("Geolocation isn’t supported in this browser.", true);
+  if (manual) { state.skipAuto = false; save(); }
+  navigator.geolocation.getCurrentPosition(
+    p => { setStatus(""); setHome(p.coords.latitude, p.coords.longitude); },
+    () => { if (manual || !state.locs.length) setStatus("Couldn’t get your location. Search for a city to add it instead.", true); },
+    { timeout: 10000, maximumAge: 300000 });
+}
+$("geo").onclick = () => locate(true);
+
+/* ---------- Units ---------- */
+function setUnits(u) {
+  state.units = u; save();
+  $("u-imperial").setAttribute("aria-pressed", u === "imperial");
+  $("u-metric").setAttribute("aria-pressed", u === "metric");
+  state.locs.forEach(loadForecast);
+}
+$("u-imperial").onclick = () => setUnits("imperial");
+$("u-metric").onclick = () => setUnits("metric");
+
+/* ---------- Startup ---------- */
+load();
+$("u-imperial").setAttribute("aria-pressed", state.units === "imperial");
+$("u-metric").setAttribute("aria-pressed", state.units === "metric");
+state.locs.forEach(addCard);
+if (!state.locs.length) setStatus("Allow location access to see your local forecast, or search for a city.");
+if (!state.skipAuto) {
+  if (state.locs.some(l => l.home)) {
+    // Refresh saved home spot quietly, only if permission was already granted
+    try { navigator.permissions.query({ name: "geolocation" }).then(p => p.state === "granted" && locate(false)); } catch {}
+  } else locate(false);
+}
 </script>
 </body>
 </html>
